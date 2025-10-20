@@ -1,0 +1,51 @@
+name: Process Recurring Expenses
+
+on:
+  schedule:
+    # Run every day at 9:00 AM UTC (adjust timezone as needed)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  process-expenses:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Process Recurring Expenses via Edge Function
+      env:
+        SUPABASE_URL: https://vurtgjyhvnaarzfbmznh.supabase.co
+        SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cnRnanlodm5hYXJ6ZmJtem5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzODc3MTgsImV4cCI6MjA3MTk2MzcxOH0.LzxFQJ7lPtyICPcJstrUSoay7vf1uxsHP5vxx1EfwWI
+      run: |
+        echo "🚀 Starting recurring expenses processing..."
+        echo "📅 Timestamp: $(date)"
+        echo "🔗 URL: $SUPABASE_URL/functions/v1/process-recurring-expenses"
+        
+        # Call the Edge Function to process recurring expenses
+        response=$(curl -X POST \
+          "$SUPABASE_URL/functions/v1/process-recurring-expenses" \
+          -H "apikey: $SUPABASE_ANON_KEY" \
+          -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+          -H "Content-Type: application/json" \
+          -w "\nHTTP_STATUS:%{http_code}")
+        
+        # Extract status code and response body
+        status_code=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
+        body=$(echo "$response" | sed '$d')
+        
+        echo "📊 HTTP Status: $status_code"
+        echo "📄 Response: $body"
+        
+        # Check if the request was successful
+        if [ "$status_code" -eq 200 ]; then
+          echo "✅ Recurring expenses processing completed successfully!"
+          
+          # Try to extract processed count from JSON response
+          if echo "$body" | grep -q '"processed_count"'; then
+            count=$(echo "$body" | grep -o '"processed_count":[0-9]*' | grep -o '[0-9]*')
+            echo "📈 Processed $count recurring expenses"
+          fi
+        else
+          echo "❌ Error: HTTP $status_code"
+          echo "Response: $body"
+          exit 1
+        fi

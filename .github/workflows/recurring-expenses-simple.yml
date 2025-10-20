@@ -1,0 +1,24 @@
+name: Process Recurring Expenses (Simple)
+
+on:
+  workflow_dispatch: # Allow manual triggering only for testing
+
+jobs:
+  process-expenses:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Process Recurring Expenses via Edge Function
+      run: |
+        echo "🚀 Starting recurring expenses processing..."
+        echo "📅 Timestamp: $(date)"
+        
+        # Call the Edge Function to process recurring expenses
+        curl -X POST \
+          "https://vurtgjyhvnaarzfbmznh.supabase.co/functions/v1/process-recurring-expenses" \
+          -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cnRnanlodm5hYXJ6ZmJtem5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzODc3MTgsImV4cCI6MjA3MTk2MzcxOH0.LzxFQJ7lPtyICPcJstrUSoay7vf1uxsHP5vxx1EfwWI" \
+          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cnRnanlodm5hYXJ6ZmJtem5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzODc3MTgsImV4cCI6MjA3MTk2MzcxOH0.LzxFQJ7lPtyICPcJstrUSoay7vf1uxsHP5vxx1EfwWI" \
+          -H "Content-Type: application/json" \
+          -v
+        
+        echo "✅ Request completed"

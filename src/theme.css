@@ -1,0 +1,189 @@
+:root {
+  color-scheme: dark;
+  --theme-transition-duration: 0.2s;
+  --transition-easing: ease;
+}
+
+:root[data-theme='dark'],
+:root:not([data-theme]) {
+  color-scheme: dark;
+
+  /* Core surfaces */
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --surface-base: hsl(240 10% 3.5%);
+  --surface-raised: hsl(240 7% 10%);
+  --surface-overlay: hsla(0, 0%, 100%, 0.06);
+  --surface-muted: hsla(0, 0%, 100%, 0.04);
+  --surface-muted-hover: hsla(0, 0%, 100%, 0.08);
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+
+  /* Brand palette */
+  --primary: 267 84% 64%;
+  --primary-foreground: 0 0% 98%;
+  --primary-light: 267 84% 74%;
+  --primary-dark: 267 84% 54%;
+  --secondary: 217 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --accent: 267 84% 64%;
+  --accent-foreground: 0 0% 98%;
+
+  /* Feedback */
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+
+  /* Structural */
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 267 84% 64%;
+  --border-soft: hsla(0, 0%, 100%, 0.12);
+  --border-strong: hsla(0, 0%, 100%, 0.24);
+  --radius: 1rem;
+
+  /* Glassmorphism */
+  --glass-surface: hsla(240, 12%, 18%, 0.75);
+  --glass-border: hsla(0, 0%, 100%, 0.18);
+  --glass-hover: hsla(0, 0%, 100%, 0.28);
+  --glass-text: hsl(0 0% 98%);
+  --shadow-card: 0 25px 60px hsla(240, 60%, 5%, 0.45);
+  --shadow-button: 0 12px 40px hsla(267, 84%, 64%, 0.25);
+
+  /* Inputs */
+  --input-bg: hsla(0, 0%, 100%, 0.06);
+  --input-border: hsla(0, 0%, 100%, 0.18);
+  --input-border-focus: hsla(267, 84%, 64%, 0.6);
+  --input-placeholder: hsla(0, 0%, 100%, 0.55);
+
+  /* Charts */
+  --chart-purple: #a259ff;
+  --chart-indigo: #4f46e5;
+  --chart-green: #22c55e;
+  --chart-orange: #f97316;
+  --chart-red: #ef4444;
+  --chart-teal: #14b8a6;
+  --chart-gold: #fbbf24;
+  --chart-rose: #fb7185;
+
+  /* Gradients */
+  --gradient-surface-start: hsl(240 10% 3.9%);
+  --gradient-surface-end: hsl(240 3.7% 15.9%);
+  --gradient-primary-from: 267 84% 64%;
+  --gradient-primary-to: 217 91% 60%;
+  --gradient-secondary-from: 142 76% 36%;
+  --gradient-secondary-to: 267 84% 64%;
+  --gradient-accent-from: 38 92% 50%;
+  --gradient-accent-to: 267 84% 64%;
+
+  /* Toasts */
+  --toast-background: hsla(240, 12%, 12%, 0.9);
+  --toast-foreground: hsl(0 0% 98%);
+  --toast-border: hsla(0, 0%, 100%, 0.14);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Core surfaces */
+  --background: 220 23% 97%;
+  --foreground: 234 18% 16%;
+  --surface-base: hsl(220 23% 96%);
+  --surface-raised: hsl(0 0% 100%);
+  --surface-overlay: hsla(236, 29%, 96%, 0.9);
+  --surface-muted: hsla(267, 84%, 64%, 0.08);
+  --surface-muted-hover: hsla(267, 84%, 64%, 0.14);
+  --card: 0 0% 100%;
+  --card-foreground: 234 18% 16%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 234 18% 16%;
+  --muted: 220 16% 90%;
+  --muted-foreground: 232 14% 36%;
+
+  /* Brand palette */
+  --primary: 261 78% 62%;
+  --primary-foreground: 0 0% 100%;
+  --primary-light: 261 83% 70%;
+  --primary-dark: 261 72% 48%;
+  --secondary: 257 62% 88%;
+  --secondary-foreground: 254 68% 28%;
+  --accent: 261 78% 62%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Feedback */
+  --success: 145 63% 35%;
+  --success-foreground: 0 0% 100%;
+  --warning: 32 94% 54%;
+  --warning-foreground: 0 0% 100%;
+  --destructive: 0 72% 52%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Structural */
+  --border: 226 30% 85%;
+  --input: 226 30% 85%;
+  --ring: 261 78% 62%;
+  --border-soft: hsla(233, 16%, 40%, 0.18);
+  --border-strong: hsla(233, 16%, 40%, 0.28);
+  --radius: 1rem;
+
+  /* Glassmorphism */
+  --glass-surface: hsla(0, 0%, 100%, 0.65);
+  --glass-border: hsla(261, 78%, 62%, 0.25);
+  --glass-hover: hsla(261, 78%, 62%, 0.35);
+  --glass-text: hsl(234 18% 16%);
+  --shadow-card: 0 25px 60px hsla(233, 50%, 30%, 0.12);
+  --shadow-button: 0 18px 35px hsla(261, 78%, 62%, 0.28);
+
+  /* Inputs */
+  --input-bg: hsla(0, 0%, 100%, 0.9);
+  --input-border: hsla(261, 78%, 62%, 0.25);
+  --input-border-focus: hsla(261, 78%, 62%, 0.6);
+  --input-placeholder: hsla(234, 18%, 16%, 0.55);
+
+  /* Charts */
+  --chart-purple: #7a42ff;
+  --chart-indigo: #6366f1;
+  --chart-green: #1c9f64;
+  --chart-orange: #f97316;
+  --chart-red: #dc2626;
+  --chart-teal: #0f766e;
+  --chart-gold: #d97706;
+  --chart-rose: #db2777;
+
+  /* Gradients */
+  --gradient-surface-start: hsl(220 23% 97%);
+  --gradient-surface-end: hsl(220 16% 92%);
+  --gradient-primary-from: 261 78% 62%;
+  --gradient-primary-to: 217 91% 60%;
+  --gradient-secondary-from: 145 63% 35%;
+  --gradient-secondary-to: 261 78% 62%;
+  --gradient-accent-from: 32 94% 54%;
+  --gradient-accent-to: 261 78% 62%;
+
+  /* Toasts */
+  --toast-background: hsla(0, 0%, 100%, 0.95);
+  --toast-foreground: hsl(234 18% 16%);
+  --toast-border: hsla(233, 16%, 40%, 0.12);
+}
+
+:root[data-theme='light'] body {
+  background-color: hsl(var(--background));
+}
+
+:root[data-theme='dark'] body {
+  background-color: hsl(var(--background));
+}
+
+[data-theme] * {
+  transition: background-color var(--theme-transition-duration) var(--transition-easing),
+    color var(--theme-transition-duration) var(--transition-easing),
+    border-color var(--theme-transition-duration) var(--transition-easing),
+    box-shadow var(--theme-transition-duration) var(--transition-easing);
+}

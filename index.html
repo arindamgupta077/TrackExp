@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/logo_new.png" />
+    <title>TrackExp - Expense Tracker</title>
+    <meta name="description" content="Track your expenses and manage your budget with ease" />
+    <meta name="author" content="TrackExp" />
+
+    <meta property="og:title" content="TrackExp - Expense Tracker" />
+    <meta property="og:description" content="Track your expenses and manage your budget with ease" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lovable_dev" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <script>
+      (function () {
+        const storageKey = 'trackexp_theme';
+        const root = document.documentElement;
+        let storedTheme = null;
+
+        try {
+          storedTheme = window.localStorage.getItem(storageKey);
+        } catch (error) {
+          storedTheme = null;
+        }
+
+        const theme = storedTheme === 'light' || storedTheme === 'dark'
+          ? storedTheme
+          : 'dark';
+
+        root.setAttribute('data-theme', theme);
+        root.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

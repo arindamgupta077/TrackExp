@@ -1,0 +1,19 @@
+{
+  "name": "expense-automation",
+  "version": "1.0.0",
+  "description": "Automated processing of recurring expenses",
+  "main": "automation-script.js",
+  "scripts": {
+    "start": "node automation-script.js",
+    "process": "node automation-script.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
+
+
+
