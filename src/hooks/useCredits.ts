@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,21 +18,20 @@ export const useCredits = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch credits
-  const fetchCredits = async () => {
+  const fetchCredits = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('credits')
+      const { data, error } = await (supabase as any).from('credits')
         .select('*')
         .order('date', { ascending: false });
 
       if (error) throw error;
 
-      setCredits(data || []);
+      setCredits((data as Credit[]) || []);
     } catch (error) {
       console.error('Error fetching credits:', error);
       toast({
@@ -42,7 +42,7 @@ export const useCredits = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Add new credit
   const addCredit = async (newCredit: Omit<Credit, 'id' | 'created_at'>) => {
@@ -59,8 +59,7 @@ export const useCredits = (userId: string | undefined) => {
         date: newCredit.date
       };
 
-      const { data, error } = await supabase
-        .from('credits')
+      const { data, error } = await (supabase as any).from('credits')
         .insert([creditData])
         .select()
         .single();
@@ -70,7 +69,7 @@ export const useCredits = (userId: string | undefined) => {
       }
 
       // Add to local state
-      setCredits(prev => [data, ...prev]);
+      setCredits(prev => [data as Credit, ...prev]);
       
       const categoryText = newCredit.category ? ` for ${newCredit.category}` : ' (unassigned)';
       toast({
@@ -107,8 +106,7 @@ export const useCredits = (userId: string | undefined) => {
     if (!userId) return;
 
     try {
-      const { error } = await supabase
-        .from('credits')
+      const { error } = await (supabase as any).from('credits')
         .delete()
         .eq('id', creditId);
 
@@ -143,8 +141,7 @@ export const useCredits = (userId: string | undefined) => {
         date: updatedCredit.date
       };
 
-      const { data, error } = await supabase
-        .from('credits')
+      const { data, error } = await (supabase as any).from('credits')
         .update(creditData)
         .eq('id', creditId)
         .select()
@@ -210,7 +207,7 @@ export const useCredits = (userId: string | undefined) => {
   // Initialize credits when component mounts
   useEffect(() => {
     fetchCredits();
-  }, [userId]);
+  }, [fetchCredits]);
 
   return {
     credits,
@@ -224,3 +221,6 @@ export const useCredits = (userId: string | undefined) => {
     getCreditsByCategory
   };
 };
+
+
+

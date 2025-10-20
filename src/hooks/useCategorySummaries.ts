@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,7 +18,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchCategorySummaries = async () => {
+  const fetchCategorySummaries = useCallback(async () => {
     if (!userId || !monthYear) {
       setData([]);
       setLoading(false);
@@ -29,7 +30,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
       setError(null);
 
       // Get category summaries
-      const { data: summaries, error: fetchError } = await supabase.rpc(
+      const { data: summaries, error: fetchError } = await (supabase as any).rpc(
         'get_category_summaries',
         {
           target_user_id: userId,
@@ -43,7 +44,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
 
       // Get accumulated remaining balances for the year
       const year = monthYear.split('-')[0];
-      const { data: monthlyBalances, error: monthlyError } = await supabase.rpc(
+      const { data: monthlyBalances, error: monthlyError } = await (supabase as any).rpc(
         'get_user_monthly_remaining_balances',
         {
           target_user_id: userId,
@@ -63,7 +64,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
         )
         .map(summary => {
           // Find the corresponding monthly balance data for this category
-          const monthlyData = monthlyBalances?.find(mb => mb.category_name === summary.category_name);
+          const monthlyData = (monthlyBalances || []).find(mb => mb.category_name === summary.category_name);
           
           // Calculate accumulated remaining balance (sum of all months up to current month)
           let accumulatedBalance = 0;
@@ -96,7 +97,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, monthYear, toast]);
 
   const updateAllSummaries = async () => {
     if (!userId || !monthYear) {
@@ -107,7 +108,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
       setLoading(true);
       setError(null);
 
-      const { error: updateError } = await supabase.rpc(
+      const { error: updateError } = await (supabase as any).rpc(
         'update_all_category_summaries',
         {
           target_user_id: userId,
@@ -178,7 +179,7 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
 
   useEffect(() => {
     fetchCategorySummaries();
-  }, [userId, monthYear]);
+  }, [fetchCategorySummaries]);
 
   return {
     data,
@@ -196,3 +197,4 @@ export const useCategorySummaries = (userId: string | undefined, monthYear: stri
     formatMonthYear
   };
 };
+

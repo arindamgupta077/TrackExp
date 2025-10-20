@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,7 +25,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch recurring expenses
-  const fetchRecurringExpenses = async () => {
+  const fetchRecurringExpenses = useCallback(async () => {
     if (!userId) {
       setRecurringExpenses([]);
       setLoading(false);
@@ -32,7 +33,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('get_user_recurring_expenses', {
+      const { data, error } = await (supabase as any).rpc('get_user_recurring_expenses', {
         target_user_id: userId
       });
 
@@ -48,7 +49,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Create new recurring expense
   const createRecurringExpense = async (expenseData: {
@@ -64,7 +65,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('recurring_expenses')
         .insert({
           user_id: userId,
@@ -83,7 +84,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
       if (error) throw error;
 
       // Add to local state
-      setRecurringExpenses(prev => [data, ...prev]);
+      setRecurringExpenses(prev => [(data as unknown) as RecurringExpense, ...prev]);
       
       toast({
         title: "Success",
@@ -115,7 +116,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
     }
   ) => {
     try {
-      const { error } = await supabase.rpc('update_recurring_expense', {
+      const { error } = await (supabase as any).rpc('update_recurring_expense', {
         expense_id: expenseId,
         new_category: updateData.category,
         new_amount: updateData.amount,
@@ -154,7 +155,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
   // Delete recurring expense
   const deleteRecurringExpense = async (expenseId: string) => {
     try {
-      const { error } = await supabase.rpc('delete_recurring_expense', {
+      const { error } = await (supabase as any).rpc('delete_recurring_expense', {
         expense_id: expenseId
       });
 
@@ -183,7 +184,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
   // Manually trigger recurring expenses (for testing or manual execution)
   const triggerRecurringExpenses = async () => {
     try {
-      const { error } = await supabase.rpc('trigger_recurring_expenses');
+      const { error } = await (supabase as any).rpc('trigger_recurring_expenses');
       
       if (error) throw error;
       
@@ -209,7 +210,7 @@ export const useRecurringExpenses = (userId: string | undefined) => {
 
   useEffect(() => {
     fetchRecurringExpenses();
-  }, [userId]);
+  }, [fetchRecurringExpenses]);
 
   return {
     recurringExpenses,
@@ -221,3 +222,6 @@ export const useRecurringExpenses = (userId: string | undefined) => {
     refetch: fetchRecurringExpenses
   };
 };
+
+
+

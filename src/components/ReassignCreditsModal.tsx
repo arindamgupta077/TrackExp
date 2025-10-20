@@ -12,6 +12,8 @@ import { useMonthlyUnassignedCredits } from '@/hooks/useMonthlyUnassignedCredits
 import AssignCreditModal from './AssignCreditModal';
 import SplitCreditModal from './SplitCreditModal';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface ReassignCreditsModalProps {
   onClose: () => void;
@@ -63,6 +65,17 @@ const ReassignCreditsModal = ({ onClose, onBudgetRefresh, onAddCredit }: Reassig
     deleteMonthlyCredit, 
     getUnassignedCreditsForMonth 
   } = useMonthlyUnassignedCredits(user?.id);
+  const { isDarkMode } = useTheme();
+
+  const selectTriggerBase = isDarkMode
+    ? 'bg-white/10 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700';
+  const selectContentBase = isDarkMode
+    ? 'bg-slate-900 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700 shadow-xl';
+  const selectItemBase = isDarkMode
+    ? 'text-white hover:bg-white/10'
+    : 'text-slate-700 hover:bg-slate-100';
 
   // Manage loading state to prevent flash
   useEffect(() => {
@@ -504,15 +517,15 @@ const ReassignCreditsModal = ({ onClose, onBudgetRefresh, onAddCredit }: Reassig
                           onValueChange={(value) => setSelectedYear(parseInt(value))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white h-8 sm:h-9 text-sm">
+                          <SelectTrigger className={cn(selectTriggerBase, 'h-8 sm:h-9 text-sm')}>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                          <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                             {generateYearOptions().map((year) => (
                               <SelectItem 
                                 key={year} 
                                 value={year.toString()}
-                                className="text-white hover:bg-white/10 text-sm"
+                                className={cn(selectItemBase, 'text-sm')}
                               >
                                 {year}
                               </SelectItem>
@@ -528,15 +541,15 @@ const ReassignCreditsModal = ({ onClose, onBudgetRefresh, onAddCredit }: Reassig
                           onValueChange={(value) => setSelectedMonth(parseInt(value))}
                           disabled={loading}
                         >
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white h-8 sm:h-9 text-sm">
+                          <SelectTrigger className={cn(selectTriggerBase, 'h-8 sm:h-9 text-sm')}>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                          <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                             {generateMonthOptions().map((month) => (
                               <SelectItem 
                                 key={month.value} 
                                 value={month.value.toString()}
-                                className="text-white hover:bg-white/10 text-sm"
+                                className={cn(selectItemBase, 'text-sm')}
                               >
                                 {month.label}
                               </SelectItem>
@@ -643,18 +656,18 @@ const ReassignCreditsModal = ({ onClose, onBudgetRefresh, onAddCredit }: Reassig
                         value={filterYear} 
                         onValueChange={setFilterYear}
                       >
-                        <SelectTrigger className="bg-white/10 border-white/20 text-white h-7 sm:h-8 text-xs sm:text-sm">
+                        <SelectTrigger className={cn(selectTriggerBase, 'h-7 sm:h-8 text-xs sm:text-sm')}>
                           <SelectValue placeholder="All years" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-900 border-white/20 max-h-60">
-                          <SelectItem value="all" className="text-white hover:bg-white/10 text-xs sm:text-sm">
+                        <SelectContent className={cn(selectContentBase, 'max-h-60')}>
+                          <SelectItem value="all" className={cn(selectItemBase, 'text-xs sm:text-sm')}>
                             All Years
                           </SelectItem>
                           {generateYearOptions().map((year) => (
                             <SelectItem 
                               key={year} 
                               value={year.toString()}
-                              className="text-white hover:bg-white/10 text-xs sm:text-sm"
+                              className={cn(selectItemBase, 'text-xs sm:text-sm')}
                             >
                               {year}
                             </SelectItem>
@@ -669,18 +682,18 @@ const ReassignCreditsModal = ({ onClose, onBudgetRefresh, onAddCredit }: Reassig
                         value={filterMonth} 
                         onValueChange={setFilterMonth}
                       >
-                        <SelectTrigger className="bg-white/10 border-white/20 text-white h-7 sm:h-8 text-xs sm:text-sm">
+                        <SelectTrigger className={cn(selectTriggerBase, 'h-7 sm:h-8 text-xs sm:text-sm')}>
                           <SelectValue placeholder="All months" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-900 border-white/20 max-h-60">
-                          <SelectItem value="all" className="text-white hover:bg-white/10 text-xs sm:text-sm">
+                        <SelectContent className={cn(selectContentBase, 'max-h-60')}>
+                          <SelectItem value="all" className={cn(selectItemBase, 'text-xs sm:text-sm')}>
                             All Months
                           </SelectItem>
                           {generateMonthOptions().map((month) => (
                             <SelectItem 
                               key={month.value} 
                               value={month.value.toString()}
-                              className="text-white hover:bg-white/10 text-xs sm:text-sm"
+                              className={cn(selectItemBase, 'text-xs sm:text-sm')}
                             >
                               {month.label}
                             </SelectItem>

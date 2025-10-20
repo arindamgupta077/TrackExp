@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,7 +17,7 @@ export const useExpenses = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch expenses
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
@@ -42,7 +42,7 @@ export const useExpenses = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Add new expense
   const addExpense = async (newExpense: Omit<Expense, 'id' | 'created_at'>) => {
@@ -184,7 +184,7 @@ export const useExpenses = (userId: string | undefined) => {
 
   useEffect(() => {
     fetchExpenses();
-  }, [userId]);
+  }, [fetchExpenses]);
 
   return {
     expenses,

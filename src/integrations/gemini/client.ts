@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai';
 
 // Gemini API configuration - using environment variable with fallback
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCfVYuxoxWJszXVkyvhpiNO9a8wqXF0pMs";
@@ -10,7 +10,15 @@ const isValidApiKey = (key: string): boolean => {
 
 // Initialize the Gemini AI client with error handling
 let genAI: GoogleGenerativeAI;
-let model: any;
+type GeminiModel = Pick<GenerativeModel, 'generateContent'>;
+
+const createUnavailableModel = (): GeminiModel => ({
+  generateContent: async () => {
+    throw new Error('Gemini API key is invalid or not configured. Please check your environment variables.');
+  }
+});
+
+let model: GeminiModel;
 
 try {
   if (!isValidApiKey(GEMINI_API_KEY)) {
@@ -26,11 +34,7 @@ try {
   
   // Create a mock client for development
   genAI = new GoogleGenerativeAI('mock-key');
-  model = {
-    generateContent: async () => {
-      throw new Error('Gemini API key is invalid or not configured. Please check your environment variables.');
-    }
-  };
+  model = createUnavailableModel();
 }
 
 // Retry function with exponential backoff
@@ -39,22 +43,26 @@ const retryWithBackoff = async <T>(
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> => {
-  let lastError: any;
+  let lastError: unknown;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
       
       // Check if it's a retryable error
-      const isRetryable = error.message?.includes('503') || 
-                         error.message?.includes('overloaded') ||
-                         error.message?.includes('UNAVAILABLE') ||
-                         error.message?.includes('timeout');
+      const message = error instanceof Error ? error.message : '';
+      const isRetryable = message.includes('503') || 
+                         message.includes('overloaded') ||
+                         message.includes('UNAVAILABLE') ||
+                         message.includes('timeout');
       
       if (!isRetryable || attempt === maxRetries) {
-        throw error;
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error(message || 'Unknown error');
       }
       
       // Calculate delay with exponential backoff
@@ -65,7 +73,10 @@ const retryWithBackoff = async <T>(
     }
   }
   
-  throw lastError;
+  if (lastError instanceof Error) {
+    throw lastError;
+  }
+  throw new Error('Unknown error occurred while retrying');
 };
 
 // Export the client for direct use if needed
@@ -104,22 +115,23 @@ export const testGeminiConnection = async (): Promise<{ success: boolean; messag
         error: 'Empty response from API'
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Gemini API test failed:', error);
     
+    const message = error instanceof Error ? error.message : '';
     let errorMessage = 'Unknown error occurred';
-    if (error.message?.includes('API_KEY_INVALID')) {
+    if (message.includes('API_KEY_INVALID')) {
       errorMessage = 'API key is invalid or expired';
-    } else if (error.message?.includes('QUOTA_EXCEEDED')) {
+    } else if (message.includes('QUOTA_EXCEEDED')) {
       errorMessage = 'API quota exceeded';
-    } else if (error.message?.includes('PERMISSION_DENIED')) {
+    } else if (message.includes('PERMISSION_DENIED')) {
       errorMessage = 'API key does not have required permissions';
-    } else if (error.message?.includes('503') || error.message?.includes('overloaded')) {
+    } else if (message.includes('503') || message.includes('overloaded')) {
       errorMessage = 'Gemini API is currently overloaded. Please try again in a few minutes.';
-    } else if (error.message?.includes('UNAVAILABLE')) {
+    } else if (message.includes('UNAVAILABLE')) {
       errorMessage = 'Gemini API service is temporarily unavailable';
-    } else if (error.message) {
-      errorMessage = error.message;
+    } else if (message) {
+      errorMessage = message;
     }
     
     return {

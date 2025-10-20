@@ -131,7 +131,7 @@ const ResetPassword = () => {
 
       // Redirect to login page
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating password:', error);
       setError('An unexpected error occurred. Please try again.');
     } finally {

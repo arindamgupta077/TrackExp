@@ -8,13 +8,24 @@ import { X, Plus, Trash2, AlertTriangle, TrendingUp, DollarSign, Edit, Lock, Che
 import { useCategories } from '@/hooks/useCategories';
 import { useBudgets, BudgetWithCarryover, Budget } from '@/hooks/useBudgets';
 import { useCategorySummaries } from '@/hooks/useCategorySummaries';
+import type { CategorySummary } from '@/hooks/useCategorySummaries';
 import { useMonthlyRemainingBalances } from '@/hooks/useMonthlyRemainingBalances';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { callSupabaseRpc } from '@/lib/supabaseRpc';
 import { getCurrentDateInIST, getMonthYearInIST, formatDateInIST, formatCurrencyInIST } from '@/lib/dateUtils';
 import { getIconByCategoryName } from '@/data/categoryIcons';
-import * as XLSX from 'xlsx';
+type XlsxModule = typeof import('xlsx');
+
+// Lazily load XLSX so heavy spreadsheet logic stays out of the initial bundle
+let cachedXLSX: XlsxModule | null = null;
+const loadXlsx = async (): Promise<XlsxModule> => {
+  if (!cachedXLSX) {
+    cachedXLSX = await import('xlsx');
+  }
+  return cachedXLSX;
+};
 
 interface BudgetManagerProps {
   isOpen: boolean;
@@ -171,7 +182,7 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
     if (!user?.id) return 0;
     
     try {
-      const { data: summaries, error } = await (supabase.rpc as any)(
+      const { data: summaries, error } = await callSupabaseRpc<CategorySummary[]>(
         'get_category_summaries',
         {
           target_user_id: user.id,
@@ -184,7 +195,7 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
         return 0;
       }
 
-      const categorySummary = (summaries || []).find((summary: any) => 
+      const categorySummary = (summaries ?? []).find(summary => 
         summary.category_name === categoryName
       );
 
@@ -489,25 +500,36 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
   useEffect(() => {
     if (isOpen && user?.id) {
       refetchCategories();
-      // Set default values for bulk budget only if not already set
-      if (!bulkBudgetMonth || !bulkBudgetYear) {
-        const currentDate = new Date();
-        setBulkBudgetMonth(String(currentDate.getMonth() + 1).padStart(2, '0'));
-        setBulkBudgetYear(currentDate.getFullYear().toString());
+      const { month: currentMonth, year: currentYear } = getMonthYearInIST();
+
+      if (!bulkBudgetMonth) {
+        setBulkBudgetMonth(currentMonth);
       }
-      // Set default values for month and year selectors
+      if (!bulkBudgetYear) {
+        setBulkBudgetYear(currentYear);
+      }
+      if (!bulkFromYear) {
+        setBulkFromYear(currentYear);
+      }
+      if (!bulkFromMonth) {
+        setBulkFromMonth(currentMonth);
+      }
+      if (!bulkToYear) {
+        setBulkToYear(currentYear);
+      }
+      if (!bulkToMonth) {
+        setBulkToMonth(currentMonth);
+      }
       if (!selectedMonth || !selectedYear) {
-        const { month, year } = getMonthYearInIST();
-        setSelectedMonth(month);
-        setSelectedYear(year);
+        setSelectedMonth(currentMonth);
+        setSelectedYear(currentYear);
       }
-      // Set default values for transfer
       if (!transferMonth || !transferYear) {
-        const { month, year } = getMonthYearInIST();
-        setTransferMonth(month);
-        setTransferYear(year);
+        setTransferMonth(currentMonth);
+        setTransferYear(currentYear);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user?.id, refetchCategories]);
 
   // Load bulk budget data when modal is opened
@@ -515,6 +537,7 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
     if (showBulkBudgetModal && bulkBudgetMonth && bulkBudgetYear && categories.length > 0) {
       loadBulkBudgetData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBulkBudgetModal, bulkBudgetMonth, bulkBudgetYear, categories.length]);
 
   // Function to set bulk budgets for a date range
@@ -640,11 +663,12 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
         });
       }
 
-      // Reset form
-      setBulkFromYear('');
-      setBulkFromMonth('');
-      setBulkToYear('');
-      setBulkToMonth('');
+  // Reset form
+  const { month: currentMonth, year: currentYear } = getMonthYearInIST();
+  setBulkFromYear(currentYear);
+  setBulkFromMonth(currentMonth);
+  setBulkToYear(currentYear);
+  setBulkToMonth(currentMonth);
       setBulkCategory('');
       setBulkAmount('');
 
@@ -824,6 +848,7 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, selectedMonth, selectedYear, user?.id]);
 
   const handleSetBudget = async () => {
@@ -1121,49 +1146,44 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
   };
 
   // Excel import functions
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setImportLoading(true);
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        // Validate and process the data
-        const processedBudgets = processExcelData(jsonData);
-        setImportedBudgets(processedBudgets);
-        
-        // Apply imported budgets to the form
-        applyImportedBudgets(processedBudgets);
-        
-        toast({
-          title: 'Excel Import Successful',
-          description: `Successfully imported ${processedBudgets.filter(b => b.isValid).length} valid budget entries.`,
-        });
-      } catch (error) {
-        console.error('Error reading Excel file:', error);
-        toast({
-          title: 'Import Error',
-          description: 'Failed to read the Excel file. Please check the format.',
-          variant: 'destructive',
-        });
-      } finally {
-        setImportLoading(false);
-        // Reset file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+    try {
+      const XLSX = await loadXlsx();
+      const data = new Uint8Array(await file.arrayBuffer());
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // Validate and process the data
+      const processedBudgets = processExcelData(jsonData);
+      setImportedBudgets(processedBudgets);
+
+      // Apply imported budgets to the form
+      applyImportedBudgets(processedBudgets);
+
+      toast({
+        title: 'Excel Import Successful',
+        description: `Successfully imported ${processedBudgets.filter(b => b.isValid).length} valid budget entries.`,
+      });
+    } catch (error) {
+      console.error('Error reading Excel file:', error);
+      toast({
+        title: 'Import Error',
+        description: 'Failed to read the Excel file. Please check the format.',
+        variant: 'destructive',
+      });
+    } finally {
+      setImportLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
-
-    reader.readAsArrayBuffer(file);
+    }
   };
 
   const processExcelData = (data: unknown[]): Array<{
@@ -1260,7 +1280,7 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
     // This allows the save function to properly detect imported values as changes
   };
 
-  const downloadSampleTemplate = () => {
+  const downloadSampleTemplate = async () => {
     // Create sample data with current categories
     const sampleData = [
       ['Category Name', 'Budget'],
@@ -1271,24 +1291,34 @@ export const BudgetManager = ({ isOpen, onClose, onChanged }: BudgetManagerProps
     ];
 
     // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
+    try {
+      const XLSX = await loadXlsx();
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
     
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 20 }, // Category Name column
-      { wch: 15 }  // Budget column
-    ];
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 20 }, // Category Name column
+        { wch: 15 }  // Budget column
+      ];
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Budget Template');
-    
-    // Download the file
-    XLSX.writeFile(wb, 'budget_template.xlsx');
-    
-    toast({
-      title: 'Template Downloaded',
-      description: 'Sample Excel template has been downloaded to your device.',
-    });
+      XLSX.utils.book_append_sheet(wb, ws, 'Budget Template');
+
+      // Download the file
+      XLSX.writeFile(wb, 'budget_template.xlsx');
+
+      toast({
+        title: 'Template Downloaded',
+        description: 'Sample Excel template has been downloaded to your device.',
+      });
+    } catch (error) {
+      console.error('Error generating template:', error);
+      toast({
+        title: 'Download Error',
+        description: 'Failed to generate the Excel template. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
 

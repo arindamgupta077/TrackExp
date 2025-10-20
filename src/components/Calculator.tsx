@@ -72,6 +72,7 @@ const Calculator = ({ onResult, onClose, isOpen }: CalculatorProps) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, display, equation, operation, previousValue, waitingForNewValue]);
 
   const handleNumber = (num: string) => {

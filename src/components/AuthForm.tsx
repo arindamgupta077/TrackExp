@@ -7,6 +7,14 @@ import { Eye, EyeOff, Sparkles, UserPlus, LogIn, Mail, AtSign, Lock, User, Phone
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { signUpSchema, signInSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
+
+type AuthFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+};
 
 interface FormErrors {
   name?: string;
@@ -27,7 +35,7 @@ const AuthForm = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [activeSection, setActiveSection] = useState<'auth' | 'aboutUs' | 'learnMore'>('auth');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AuthFormData>({
     name: '',
     email: '',
     phone: '',
@@ -42,6 +50,13 @@ const AuthForm = () => {
   const learnMoreRef = useRef<HTMLDivElement>(null);
   const aboutUsRef = useRef<HTMLDivElement>(null);
   const previousThemeRef = useRef<string | null>(null);
+
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return 'An unexpected error occurred';
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
@@ -82,14 +97,33 @@ const AuthForm = () => {
 
   const validateForm = () => {
     const newErrors: FormErrors = {};
-    const schema = isLogin ? signInSchema : signUpSchema;
-    
     try {
-      schema.parse(formData);
-    } catch (error: any) {
-      error.errors?.forEach((err: any) => {
-        newErrors[err.path[0] as keyof FormErrors] = err.message;
-      });
+      if (isLogin) {
+        signInSchema.parse({
+          email: formData.email,
+          password: formData.password
+        });
+      } else {
+        signUpSchema.parse({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          password: formData.password
+        });
+      }
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
+        error.issues.forEach(issue => {
+          const field = issue.path[0];
+          if (typeof field === 'string') {
+            newErrors[field as Exclude<keyof FormErrors, 'general'>] = issue.message;
+          } else {
+            newErrors.general = issue.message;
+          }
+        });
+      } else {
+        newErrors.general = getErrorMessage(error);
+      }
     }
 
     setErrors(newErrors);
@@ -137,8 +171,8 @@ const AuthForm = () => {
           setIsLogin(true);
         }
       }
-    } catch (error: any) {
-      setErrors({ general: error.message });
+    } catch (error: unknown) {
+      setErrors({ general: getErrorMessage(error) });
     } finally {
       if (isLogin) {
         setSignInLoading(false);
@@ -148,7 +182,7 @@ const AuthForm = () => {
     }
   };
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: keyof AuthFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -209,10 +243,11 @@ const AuthForm = () => {
         setShowForgotPassword(false);
         setForgotPasswordEmail('');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : null;
       toast({
         title: "Error",
-        description: "Failed to send password reset email. Please try again.",
+        description: message ?? "Failed to send password reset email. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -235,8 +270,8 @@ const AuthForm = () => {
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      setErrors({ general: error.message });
+    } catch (error: unknown) {
+      setErrors({ general: getErrorMessage(error) });
       toast({
         title: "Error",
         description: "Failed to sign in with Google",

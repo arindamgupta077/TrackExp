@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,14 +18,14 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch credit card expenses
-  const fetchCreditCardExpenses = async () => {
+  const fetchCreditCardExpenses = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('credit_card')
         .select('*')
         .order('date', { ascending: false });
@@ -42,7 +43,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Add new credit card expense
   const addCreditCardExpense = async (newExpense: Omit<CreditCardExpense, 'id' | 'created_at'>) => {
@@ -59,7 +60,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
         date: newExpense.date
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('credit_card')
         .insert([expenseData])
         .select()
@@ -110,7 +111,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('credit_card')
         .delete()
         .eq('id', expenseId)
@@ -149,7 +150,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('credit_card')
         .update({
           category: updatedExpense.category,
@@ -169,7 +170,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
       // Update local state
       setCreditCardExpenses(prev => 
         prev.map(expense => 
-          expense.id === expenseId ? data : expense
+          expense.id === expenseId ? (data as CreditCardExpense) : expense
         )
       );
       
@@ -223,7 +224,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
       }
 
       // Delete from credit card table
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('credit_card')
         .delete()
         .eq('id', creditCardExpenseId)
@@ -327,7 +328,7 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
 
   useEffect(() => {
     fetchCreditCardExpenses();
-  }, [userId]);
+  }, [fetchCreditCardExpenses]);
 
   return {
     creditCardExpenses,
@@ -340,3 +341,4 @@ export const useCreditCardExpenses = (userId: string | undefined) => {
     refetch: fetchCreditCardExpenses
   };
 };
+

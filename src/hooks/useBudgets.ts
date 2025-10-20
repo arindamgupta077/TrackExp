@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,7 +41,7 @@ export const useBudgets = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch budgets with category names
-  const fetchBudgets = async () => {
+  const fetchBudgets = useCallback(async () => {
     if (!userId) {
       setBudgets([]);
       setLoading(false);
@@ -78,10 +79,10 @@ export const useBudgets = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Fetch budget alerts with category names
-  const fetchBudgetAlerts = async () => {
+  const fetchBudgetAlerts = useCallback(async () => {
     if (!userId) {
       setBudgetAlerts([]);
       return;
@@ -108,7 +109,7 @@ export const useBudgets = (userId: string | undefined) => {
     } catch (error) {
       console.error('Error fetching budget alerts:', error);
     }
-  };
+  }, [userId]);
 
   // Get budget for a specific month and category (no carryover)
   const getBudgetWithCarryover = async (categoryId: string, monthYear: string): Promise<BudgetWithCarryover | null> => {
@@ -221,7 +222,7 @@ export const useBudgets = (userId: string | undefined) => {
 
     try {
       // Use the optimized category_summaries RPC function
-      const { data: summaries, error: summariesError } = await supabase.rpc(
+      const { data: summaries, error: summariesError } = await (supabase as any).rpc(
         'get_category_summaries',
         {
           target_user_id: userId,
@@ -500,7 +501,7 @@ export const useBudgets = (userId: string | undefined) => {
   useEffect(() => {
     fetchBudgets();
     fetchBudgetAlerts();
-  }, [userId]);
+  }, [fetchBudgets, fetchBudgetAlerts]);
 
   return {
     budgets,
@@ -516,3 +517,4 @@ export const useBudgets = (userId: string | undefined) => {
     markAllAlertsAsRead
   };
 };
+

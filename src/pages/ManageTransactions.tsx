@@ -329,7 +329,7 @@ const ManageTransactions = () => {
       <div className="absolute inset-0 bg-gradient-surface" />
 
       <div className="relative z-10 p-3 sm:p-6 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-heading font-semibold text-white">Manage Transactions</h1>
             <p className="text-sm text-white/70 mt-1">
@@ -340,7 +340,7 @@ const ManageTransactions = () => {
             variant="outline"
             size="sm"
             onClick={() => navigate('/')}
-            className="glass-button border-white/30 text-white hover:bg-white/10"
+            className="glass-button border-white/30 text-white hover:bg-white/10 w-full sm:w-auto justify-center"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
@@ -354,9 +354,9 @@ const ManageTransactions = () => {
           </div>
 
           <div className="space-y-4 mb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="expense-year-filter" className="text-white text-sm font-medium whitespace-nowrap">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                <Label htmlFor="expense-year-filter" className="text-white text-sm font-medium">
                   Year:
                 </Label>
                 <Input
@@ -364,18 +364,18 @@ const ManageTransactions = () => {
                   type="number"
                   value={manageExpenseFilter.year}
                   onChange={(e) => handleYearChange(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white w-20"
+                  className="bg-white/10 border-white/20 text-white w-full sm:w-24"
                   min="2020"
                   max="2035"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label htmlFor="entry-type-filter" className="text-white text-sm font-medium whitespace-nowrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                <Label htmlFor="entry-type-filter" className="text-white text-sm font-medium">
                   Type:
                 </Label>
                 <Select value={manageExpenseFilter.entryType} onValueChange={handleEntryTypeChange}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-32">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full sm:w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-white/20 text-white">
@@ -386,12 +386,12 @@ const ManageTransactions = () => {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label htmlFor="category-filter" className="text-white text-sm font-medium whitespace-nowrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                <Label htmlFor="category-filter" className="text-white text-sm font-medium">
                   Category:
                 </Label>
                 <Select value={manageExpenseFilter.category} onValueChange={handleCategoryChange}>
-                  <SelectTrigger id="category-filter" className="bg-white/10 border-white/20 text-white w-48">
+                  <SelectTrigger id="category-filter" className="bg-white/10 border-white/20 text-white w-full sm:w-48">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-white/20 text-white max-h-60 overflow-y-auto">
@@ -418,20 +418,20 @@ const ManageTransactions = () => {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Label className="text-white text-sm font-medium">
                   Select Months:
                 </Label>
                 <Button
                   onClick={handleSelectAllMonths}
                   size="sm"
-                  className="glass-button bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30"
+                  className="glass-button bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30 w-full sm:w-auto justify-center"
                 >
                   {manageExpenseFilter.selectedMonths.length === 12 ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {Array.from({ length: 12 }, (_, i) => {
                   const month = String(i + 1).padStart(2, '0');
                   const monthYear = `${manageExpenseFilter.year}-${month}`;

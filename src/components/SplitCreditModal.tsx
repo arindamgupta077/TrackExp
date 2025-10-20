@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Split, X, Plus, Trash2 } from 'lucide-react';
 import { getIconByCategoryName } from '@/data/categoryIcons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface SplitAssignment {
   category: string;
@@ -44,6 +46,17 @@ const SplitCreditModal: React.FC<SplitCreditModalProps> = ({
   const [splitAssignments, setSplitAssignments] = useState<SplitAssignment[]>([
     { category: '', amount: '' }
   ]);
+  const { isDarkMode } = useTheme();
+
+  const selectTriggerBase = isDarkMode
+    ? 'bg-white/10 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700';
+  const selectContentBase = isDarkMode
+    ? 'bg-slate-900 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700 shadow-xl';
+  const selectItemBase = isDarkMode
+    ? 'text-white hover:bg-white/10'
+    : 'text-slate-700 hover:bg-slate-100';
 
   const addSplitAssignment = () => {
     setSplitAssignments([...splitAssignments, { category: '', amount: '' }]);
@@ -123,15 +136,15 @@ const SplitCreditModal: React.FC<SplitCreditModalProps> = ({
                 onValueChange={(value) => setSplitTargetYear(parseInt(value))}
                 disabled={loading}
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+                <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                   {generateYearOptions().map((year) => (
                     <SelectItem 
                       key={year} 
                       value={year.toString()}
-                      className="text-white hover:bg-white/10"
+                      className={cn(selectItemBase, 'text-sm')}
                     >
                       {year}
                     </SelectItem>
@@ -147,15 +160,15 @@ const SplitCreditModal: React.FC<SplitCreditModalProps> = ({
                 onValueChange={(value) => setSplitTargetMonth(parseInt(value))}
                 disabled={loading}
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+                <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                   {generateMonthOptions().map((month) => (
                     <SelectItem 
                       key={month.value} 
                       value={month.value.toString()}
-                      className="text-white hover:bg-white/10"
+                      className={cn(selectItemBase, 'text-sm')}
                     >
                       {month.label}
                     </SelectItem>
@@ -188,15 +201,15 @@ const SplitCreditModal: React.FC<SplitCreditModalProps> = ({
                     onValueChange={(value) => updateSplitAssignment(index, 'category', value)}
                     disabled={loading}
                   >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+                    <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                    <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                       {categories.map((category) => (
                         <SelectItem 
                           key={category.id} 
                           value={category.name}
-                          className="text-white hover:bg-white/10"
+                          className={cn(selectItemBase, 'text-sm')}
                         >
                           <div className="flex items-center gap-2">
                             <span>{category.icon || getIconByCategoryName(category.name)}</span>

@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, X } from 'lucide-react';
 import { getIconByCategoryName } from '@/data/categoryIcons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface AssignCreditModalProps {
   credit: {
@@ -37,6 +39,17 @@ const AssignCreditModal: React.FC<AssignCreditModalProps> = ({
   const [assignToCategory, setAssignToCategory] = useState('');
   const [assignToYear, setAssignToYear] = useState(new Date().getFullYear());
   const [assignToMonth, setAssignToMonth] = useState(new Date().getMonth() + 1);
+  const { isDarkMode } = useTheme();
+
+  const selectTriggerBase = isDarkMode
+    ? 'bg-white/10 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700';
+  const selectContentBase = isDarkMode
+    ? 'bg-slate-900 border-white/20 text-white'
+    : 'bg-white border-slate-200 text-slate-700 shadow-xl';
+  const selectItemBase = isDarkMode
+    ? 'text-white hover:bg-white/10'
+    : 'text-slate-700 hover:bg-slate-100';
 
   const handleAssign = async () => {
     if (!assignToCategory) return;
@@ -94,15 +107,15 @@ const AssignCreditModal: React.FC<AssignCreditModalProps> = ({
               onValueChange={setAssignToCategory}
               disabled={loading}
             >
-              <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+              <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                 <SelectValue placeholder="Choose a category" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+              <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                 {categories.map((category) => (
                   <SelectItem 
                     key={category.id} 
                     value={category.name}
-                    className="text-white hover:bg-white/10"
+                    className={cn(selectItemBase, 'text-sm')}
                   >
                     <div className="flex items-center gap-2">
                       <span>{category.icon || getIconByCategoryName(category.name)}</span>
@@ -123,15 +136,15 @@ const AssignCreditModal: React.FC<AssignCreditModalProps> = ({
                 onValueChange={(value) => setAssignToYear(parseInt(value))}
                 disabled={loading}
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+                <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                   {generateYearOptions().map((year) => (
                     <SelectItem 
                       key={year} 
                       value={year.toString()}
-                      className="text-white hover:bg-white/10"
+                      className={cn(selectItemBase, 'text-sm')}
                     >
                       {year}
                     </SelectItem>
@@ -147,15 +160,15 @@ const AssignCreditModal: React.FC<AssignCreditModalProps> = ({
                 onValueChange={(value) => setAssignToMonth(parseInt(value))}
                 disabled={loading}
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white h-9">
+                <SelectTrigger className={cn(selectTriggerBase, 'h-9')}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/20 max-h-60">
+                <SelectContent className={cn(selectContentBase, 'max-h-60')}>
                   {generateMonthOptions().map((month) => (
                     <SelectItem 
                       key={month.value} 
                       value={month.value.toString()}
-                      className="text-white hover:bg-white/10"
+                      className={cn(selectItemBase, 'text-sm')}
                     >
                       {month.label}
                     </SelectItem>

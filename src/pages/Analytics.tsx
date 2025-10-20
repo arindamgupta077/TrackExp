@@ -17,6 +17,7 @@ import { useCategorySummaries } from '@/hooks/useCategorySummaries';
 import { useSalaryMonthsTracking } from '@/hooks/useSalaryMonthsTracking';
 import { getCurrentDateStringInIST, getMonthYearInIST, formatCurrencyInIST } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { getIconByCategoryName } from '@/data/categoryIcons';
 import heroImage from '@/assets/hero-bg.jpg';
 import CreditIncomeAnalyticsSection from '@/components/CreditIncomeAnalyticsSection';
@@ -173,6 +174,7 @@ const Analytics = () => {
       // Update all balances for the selected year
       updateAllBalances();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, monthlyBalancesYear]); // Removed updateAllBalances from dependencies to prevent infinite loop
 
   // Auto-scroll to current month when monthly balances data loads
@@ -206,6 +208,7 @@ const Analytics = () => {
       
       return () => clearTimeout(timeoutId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthlyBalances]);
 
   // Auto-update category summaries when page loads
@@ -214,6 +217,7 @@ const Analytics = () => {
       // Update all summaries for the selected month
       updateAllSummaries();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, categorySummaryMonth]); // Removed updateAllSummaries from dependencies to prevent infinite loop
 
   // Auto-update selected months when salary months change
@@ -240,6 +244,7 @@ const Analytics = () => {
       
       return [...new Set([...filteredMonths, ...newMonths])].sort((a, b) => a - b);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [salaryMonths]);
 
   // Function to check if a month still has salary credits and handle removal
@@ -252,13 +257,15 @@ const Analytics = () => {
       const nextMonth = new Date(year, month, 1); // month is 0-indexed in Date constructor
       const monthEnd = `${nextMonth.getFullYear()}-${(nextMonth.getMonth() + 1).toString().padStart(2, '0')}-01`;
 
-      const { data: salaryCredits, error } = await (supabase as any)
-        .from('credits')
+      type SalaryCreditRow = { id: string };
+
+      const { data: salaryCredits, error } = await (supabase
+        .from('credits' as never)
         .select('id')
         .eq('user_id', user.id)
         .eq('category', 'Salary')
         .gte('date', monthStart)
-        .lt('date', monthEnd);
+        .lt('date', monthEnd)) as unknown as { data: SalaryCreditRow[] | null; error: PostgrestError | null };
 
       if (error) {
         console.error('Error checking salary credits:', error);
@@ -293,6 +300,7 @@ const Analytics = () => {
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credits, salaryMonths]);
 
   // Calculate analytics data
@@ -420,7 +428,7 @@ const Analytics = () => {
       }));
     }
     return [] as Array<{ day?: number; month?: number; amount: number }>;
-  }, [selectedPeriod, analytics, selectedYear, selectedMonth]);
+  }, [selectedPeriod, analytics, selectedMonth]);
 
   const chartColors = [
     'var(--chart-purple)',

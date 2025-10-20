@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,9 @@ interface FormErrors {
   date?: string;
   general?: string;
 }
+
+type WorksheetCell = string | number | Date | null | undefined;
+type WorksheetRow = WorksheetCell[];
 
 // Fallback emojis for some common names
 const defaultCategoryIcon = (name: string) => {
@@ -88,14 +91,14 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
   const [showCalculator, setShowCalculator] = useState(false);
 
   // Get accumulated balance for a specific category from Monthly Remaining Balances
-  const getCategoryAccumulatedBalance = (categoryName: string) => {
+  const getCategoryAccumulatedBalance = useCallback((categoryName: string) => {
     const categoryData = monthlyBalances.find(balance => balance.category_name === categoryName);
     if (!categoryData) return 0;
     
     // Use the same calculation as Monthly Remaining Balances Total column
     // This includes salary months and ensures consistency across all components
     return getAccumulatedTotalForCategory(categoryData);
-  };
+  }, [monthlyBalances, getAccumulatedTotalForCategory]);
 
   // Get credit card due for a specific category
   const getCategoryCreditCardDue = (categoryName: string) => {
@@ -107,7 +110,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
   };
 
   // Check credit card overage when category changes
-  const checkCreditCardOverage = (categoryName: string) => {
+  const checkCreditCardOverage = useCallback((categoryName: string) => {
     if (!categoryName || creditCardExpenses.length === 0) {
       setCreditCardAlert(null);
       return;
@@ -137,10 +140,10 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
     } else {
       setCreditCardAlert(null);
     }
-  };
+  }, [creditCardExpenses, getCategoryAccumulatedBalance]);
 
   // Check budget overage and show accumulated balance when category has exceeded 100% of budget
-  const checkBudgetOverage = (budget: BudgetWithCarryover | null, categoryName: string) => {
+  const checkBudgetOverage = useCallback((budget: BudgetWithCarryover | null, categoryName: string) => {
     if (!budget || !categoryName) {
       setBudgetOverageAlert(null);
       return;
@@ -161,7 +164,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
     } else {
       setBudgetOverageAlert(null);
     }
-  };
+  }, [getCategoryAccumulatedBalance]);
 
   // Check budget when category or date changes
   useEffect(() => {
@@ -209,7 +212,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
     };
 
     checkBudget();
-  }, [formData.category, formData.date, formData.amount, categories, user?.id, getBudgetWithCarryover, creditCardExpenses, monthlyBalances]);
+  }, [formData.category, formData.date, formData.amount, categories, user?.id, getBudgetWithCarryover, creditCardExpenses, monthlyBalances, checkBudgetOverage, checkCreditCardOverage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,7 +330,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
     }
   };
 
-  const readExcelFile = (file: File, XLSX: typeof import('xlsx')): Promise<any[]> => {
+  const readExcelFile = (file: File, XLSX: typeof import('xlsx')): Promise<WorksheetRow[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -358,7 +361,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
             dateNF: 'yyyy-mm-dd', // Date format
             defval: '', // Default value for empty cells
             blankrows: false // Skip completely blank rows
-          });
+          }) as WorksheetRow[];
           
           console.log('📊 Raw data from Excel:', jsonData.length, 'rows');
           console.log('📊 First few rows:', jsonData.slice(0, 5));
@@ -374,7 +377,7 @@ const ExpenseForm = ({ onAddExpense, onClose, creditCardExpenses = [], monthlyBa
     });
   };
 
-  const validateImportedData = (data: any[]): Array<{
+  const validateImportedData = (data: WorksheetRow[]): Array<{
     category: string;
     amount: number;
     description: string;

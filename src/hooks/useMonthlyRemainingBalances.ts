@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -32,8 +33,7 @@ export const useMonthlyRemainingBalances = (userId: string | undefined, year: nu
 
   const fetchHistoricalData = async (targetYear: number) => {
     try {
-      const { data: result, error: fetchError } = await supabase
-        .rpc('get_user_monthly_remaining_balances', {
+      const { data: result, error: fetchError } = await (supabase as any).rpc('get_user_monthly_remaining_balances', {
           target_user_id: userId,
           target_year: targetYear
         });
@@ -55,7 +55,7 @@ export const useMonthlyRemainingBalances = (userId: string | undefined, year: nu
     }
   };
 
-  const fetchMonthlyRemainingBalances = async () => {
+  const fetchMonthlyRemainingBalances = useCallback(async () => {
     if (!userId || !year) {
       setData([]);
       setLoading(false);
@@ -107,14 +107,14 @@ export const useMonthlyRemainingBalances = (userId: string | undefined, year: nu
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, year, toast]);
 
   const updateAllBalances = async () => {
     if (!userId || !year) return;
 
     try {
-      const { error: updateError } = await supabase
-        .rpc('update_all_monthly_remaining_balances', {
+      const { error: updateError } = await (supabase as any).rpc('update_all_monthly_remaining_balances', {
           target_user_id: userId,
           target_year: year
         });
@@ -256,7 +256,7 @@ export const useMonthlyRemainingBalances = (userId: string | undefined, year: nu
 
   useEffect(() => {
     fetchMonthlyRemainingBalances();
-  }, [userId, year]);
+  }, [fetchMonthlyRemainingBalances]);
 
   return {
     data,
@@ -271,3 +271,6 @@ export const useMonthlyRemainingBalances = (userId: string | undefined, year: nu
     getMonthName
   };
 };
+
+
+

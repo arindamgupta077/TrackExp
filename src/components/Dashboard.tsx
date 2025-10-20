@@ -20,6 +20,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategories'
 import { getIconByCategoryName } from '@/data/categoryIcons';
 import { Credit } from '@/hooks/useCredits';
+import type { CreditCardExpense } from '@/hooks/useCreditCardExpenses';
+import type { CategorySummary } from '@/hooks/useCategorySummaries';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getCurrentDateStringInIST, getMonthYearInIST, formatDateInIST, formatCurrencyInIST } from '@/lib/dateUtils';
 import { useMonthlyRemainingBalances } from '@/hooks/useMonthlyRemainingBalances';
@@ -27,6 +29,7 @@ import { useMonthlyUnassignedCredits } from '@/hooks/useMonthlyUnassignedCredits
 import { useSalaryMonthsTracking } from '@/hooks/useSalaryMonthsTracking';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
+import { callSupabaseRpc } from '@/lib/supabaseRpc';
 import heroImage from '@/assets/hero-bg.jpg';
 
 interface User {
@@ -53,7 +56,7 @@ interface DashboardProps {
   user: User;
   expenses: Expense[];
   credits: Credit[];
-  creditCardExpenses: any[]; // CreditCardExpense type
+  creditCardExpenses: CreditCardExpense[];
   getUnassignedCreditsTotal: () => number;
   onAddExpense: () => void;
   onAddCredit: (credit: { category?: string; amount: number; description?: string; date: string }) => Promise<void>;
@@ -178,7 +181,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
   const [showRecurringExpenses, setShowRecurringExpenses] = useState(false);
   const [showCreditCardModal, setShowCreditCardModal] = useState(false);
   const [isCreditCardExpanded, setIsCreditCardExpanded] = useState(false);
-  const [categorySummaries, setCategorySummaries] = useState<any[]>([]);
+  const [categorySummaries, setCategorySummaries] = useState<CategorySummary[]>([]);
   
   // User profile state
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -227,7 +230,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
       let totalMonthlyBudget = 0;
 
       // Get category summaries for the current month
-      const { data: categorySummaries, error: summaryError } = await (supabase.rpc as any)(
+      const { data: categorySummaryData, error: summaryError } = await callSupabaseRpc<CategorySummary[]>(
         'get_category_summaries',
         {
           target_user_id: authUser.id,
@@ -258,7 +261,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
         }
       } else {
         // Use category summaries data
-        totalMonthlyBudget = (categorySummaries || []).reduce((sum, summary) => sum + (summary.total_budget || 0), 0);
+        totalMonthlyBudget = (categorySummaryData ?? []).reduce((sum, summary) => sum + (summary.total_budget || 0), 0);
       }
 
       setMonthlyBudget(totalMonthlyBudget);
@@ -291,7 +294,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
       let totalRemainingBudget = 0;
 
       // Get category summaries for the current month
-      const { data: categorySummaries, error: summaryError } = await (supabase.rpc as any)(
+      const { data: categorySummaryData, error: summaryError } = await callSupabaseRpc<CategorySummary[]>(
         'get_category_summaries',
         {
           target_user_id: authUser.id,
@@ -339,7 +342,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
         }
       } else {
         // Use category summaries data
-        totalRemainingBudget = (categorySummaries || []).reduce((sum, summary) => sum + (summary.remaining_balance || 0), 0);
+        totalRemainingBudget = (categorySummaryData ?? []).reduce((sum, summary) => sum + (summary.remaining_balance || 0), 0);
       }
 
       console.log('✅ Remaining budget updated from summaries:', totalRemainingBudget);
@@ -362,7 +365,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
 
     try {
       console.log('🔄 Updating category summaries for current month...');
-      const { error } = await (supabase.rpc as any)(
+      const { error } = await callSupabaseRpc<null>(
         'update_all_category_summaries',
         {
           target_user_id: authUser.id,
@@ -389,11 +392,13 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
 
     try {
       // First try with the new column, if it fails, use default value
+      type InitialBankBalanceRow = { initial_bank_balance: number | null };
+
       const { data, error } = await supabase
         .from('profiles')
         .select('initial_bank_balance')
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle<InitialBankBalanceRow>();
 
       if (error) {
         console.log('Initial bank balance column not found, using default value');
@@ -401,7 +406,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
         return;
       }
 
-      setInitialBankBalance((data as any)?.initial_bank_balance || 0);
+      setInitialBankBalance(data?.initial_bank_balance ?? 0);
     } catch (error) {
       console.error('Error fetching initial bank balance:', error);
       setInitialBankBalance(0);
@@ -424,7 +429,11 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
         return;
       }
 
-      setUserProfile(data);
+      setUserProfile(data ? {
+        name: data.name,
+        phone: data.phone ?? undefined,
+        avatar_url: data.avatar_url ?? undefined
+      } : null);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -637,6 +646,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
       bankBalanceInitializedRef.current = true;
       refreshBankBalance();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id]); // Remove refreshBankBalance from dependencies to prevent multiple calls
 
   // Fetch category summaries for credit card expenses grouping
@@ -644,7 +654,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
     if (!authUser?.id) return;
 
     try {
-      const { data: summaries, error } = await (supabase.rpc as any)(
+      const { data: summaryData, error } = await callSupabaseRpc<CategorySummary[]>(
         'get_category_summaries',
         {
           target_user_id: authUser.id,
@@ -656,7 +666,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
         console.warn('⚠️ Category summaries query error:', error);
         setCategorySummaries([]);
       } else {
-        setCategorySummaries(summaries || []);
+        setCategorySummaries(summaryData ?? []);
       }
     } catch (error) {
       console.error('❌ Error fetching category summaries:', error);
@@ -693,8 +703,14 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
   }, [monthlyBalances, getAccumulatedTotalForCategory]);
 
   // Group credit card expenses by category
-  const groupedCreditCardExpenses = useMemo(() => {
-    const grouped = creditCardExpenses.reduce((acc, expense) => {
+  interface CreditCardExpenseGroup {
+    category: string;
+    totalAmount: number;
+    expenses: CreditCardExpense[];
+  }
+
+  const groupedCreditCardExpenses = useMemo<CreditCardExpenseGroup[]>(() => {
+    const grouped = creditCardExpenses.reduce<Record<string, CreditCardExpenseGroup>>((acc, expense) => {
       if (!acc[expense.category]) {
         acc[expense.category] = {
           category: expense.category,
@@ -705,11 +721,11 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
       acc[expense.category].totalAmount += expense.amount;
       acc[expense.category].expenses.push(expense);
       return acc;
-    }, {} as Record<string, { category: string; totalAmount: number; expenses: any[] }>);
+    }, {});
 
     // Sort by credit card impact percentage (highest impact first)
     return Object.values(grouped).sort((a, b) => {
-      const getImpactPercentage = (group: any) => {
+      const getImpactPercentage = (group: CreditCardExpenseGroup) => {
         const accumulatedBalance = getCategoryAccumulatedBalance(group.category);
         return (group.totalAmount / Math.max(accumulatedBalance, group.totalAmount)) * 100;
       };
@@ -719,7 +735,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
       
       return impactB - impactA; // Sort in descending order (highest impact first)
     });
-  }, [creditCardExpenses, getCategoryAccumulatedBalance, monthlyBalances]);
+  }, [creditCardExpenses, getCategoryAccumulatedBalance]);
 
   // Get category summary data for a specific category
   const getCategorySummary = useCallback((categoryName: string) => {
@@ -836,6 +852,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
 
       return () => clearTimeout(timeoutId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, authUser?.id, hasInitializedBudget, loading]); // Only depend on expenses array, not individual properties
 
   // Additional effect to trigger remaining budget calculation when expenses are first loaded
@@ -848,6 +865,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
 
       return () => clearTimeout(timeoutId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, authUser?.id, loading, hasInitializedBudget]);
 
   return (
@@ -1843,7 +1861,7 @@ export const Dashboard = ({ user, expenses, credits, creditCardExpenses, getUnas
                     : 'max-h-0 opacity-0 overflow-hidden'
                 }`}>
                   <div className="grid gap-3 sm:gap-4 lg:gap-4 xl:gap-5">
-                    {groupedCreditCardExpenses.map((group: any, index: number) => {
+                    {groupedCreditCardExpenses.map((group, index) => {
                     const categorySummary = getCategorySummary(group.category);
                     const accumulatedBalance = getCategoryAccumulatedBalance(group.category);
                     const adjustedBalance = accumulatedBalance - group.totalAmount;

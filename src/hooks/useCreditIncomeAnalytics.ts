@@ -1,6 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+type QueryResponse<T> = {
+  data: T | null;
+  error: PostgrestError | null;
+};
+
+type CreditRow = {
+  category: string | null;
+  amount: number;
+  date: string;
+};
+
+type ExpenseRow = {
+  category: string;
+  amount: number;
+  date: string;
+};
 
 export interface CreditIncomeData {
   month: string;
@@ -40,7 +57,7 @@ export const useCreditIncomeAnalytics = (
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchCreditIncomeAnalytics = async () => {
+  const fetchCreditIncomeAnalytics = useCallback(async () => {
     if (!userId) {
       setData(null);
       setLoading(false);
@@ -75,12 +92,12 @@ export const useCreditIncomeAnalytics = (
       }
 
       // Fetch credits data
-      const { data: creditsData, error: creditsError } = await supabase
-        .from('credits' as any)
+      const { data: creditsData, error: creditsError } = await (supabase
+        .from('credits' as never)
         .select('category, amount, date')
         .eq('user_id', userId)
         .gte('date', startDate)
-        .lt('date', endDate);
+        .lt('date', endDate)) as unknown as QueryResponse<CreditRow[]>;
 
       if (creditsError) {
         throw creditsError;
@@ -99,23 +116,24 @@ export const useCreditIncomeAnalytics = (
       }
 
       // Process credits data
-      const credits = creditsData || [];
-      const totalCredits = credits.reduce((sum: number, credit: any) => sum + credit.amount, 0);
+  const credits: CreditRow[] = creditsData ?? [];
+      const totalCredits = credits.reduce((sum, credit) => sum + credit.amount, 0);
 
       // Process income data (from expenses with Salary category)
-      const salaryExpenses = expensesData?.filter((expense: any) => expense.category === 'Salary') || [];
-      const totalIncome = salaryExpenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+      const expensesRows: ExpenseRow[] = expensesData ?? [];
+      const salaryExpenses = expensesRows.filter(expense => expense.category === 'Salary');
+      const totalIncome = salaryExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
       // Group credits by category
       const creditCategoryMap = new Map<string, number>();
-      credits.forEach((credit: any) => {
+      credits.forEach(credit => {
         const category = credit.category || 'Unassigned';
         creditCategoryMap.set(category, (creditCategoryMap.get(category) || 0) + credit.amount);
       });
 
       // Group income by category (mainly Salary, but could be other income categories)
       const incomeCategoryMap = new Map<string, number>();
-      salaryExpenses.forEach((expense: any) => {
+      salaryExpenses.forEach(expense => {
         const category = expense.category;
         incomeCategoryMap.set(category, (incomeCategoryMap.get(category) || 0) + expense.amount);
       });
@@ -128,14 +146,14 @@ export const useCreditIncomeAnalytics = (
 
       // Create category breakdown
       const categoryBreakdown = Array.from(allCategories).map(category => {
-        const credits = creditCategoryMap.get(category) || 0;
-        const income = incomeCategoryMap.get(category) || 0;
-        const total = credits + income;
+        const categoryCredits = creditCategoryMap.get(category) || 0;
+        const categoryIncome = incomeCategoryMap.get(category) || 0;
+        const total = categoryCredits + categoryIncome;
         
         return {
           category,
-          credits,
-          income,
+          credits: categoryCredits,
+          income: categoryIncome,
           total,
           percentage: totalCredits + totalIncome > 0 ? (total / (totalCredits + totalIncome)) * 100 : 0
         };
@@ -166,26 +184,21 @@ export const useCreditIncomeAnalytics = (
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, selectedMonth, selectedYear, toast]);
 
   // Helper function to generate monthly trend data
   const generateMonthlyTrend = (
-    credits: any[],
-    salaryExpenses: any[],
+    credits: CreditRow[],
+    salaryExpenses: ExpenseRow[],
     startDate: string,
     endDate: string
   ) => {
-    const trendData: Array<{
-      month: string;
-      year: number;
-      credits: number;
-      income: number;
-      total: number;
-    }> = [];
+    const trendData: CreditIncomeData['monthlyTrend'] = [];
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     const current = new Date(start);
     while (current < end) {
       const month = current.getMonth() + 1;
@@ -193,12 +206,12 @@ export const useCreditIncomeAnalytics = (
       const monthStr = current.toISOString().slice(0, 7); // YYYY-MM
       
       const monthCredits = credits
-        .filter((credit: any) => credit.date.startsWith(monthStr))
-        .reduce((sum: number, credit: any) => sum + credit.amount, 0);
-      
+        .filter(credit => credit.date.startsWith(monthStr))
+        .reduce((sum, credit) => sum + credit.amount, 0);
+
       const monthIncome = salaryExpenses
-        .filter((expense: any) => expense.date.startsWith(monthStr))
-        .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+        .filter(expense => expense.date.startsWith(monthStr))
+        .reduce((sum, expense) => sum + expense.amount, 0);
 
       trendData.push({
         month: getMonthName(month),
@@ -225,7 +238,7 @@ export const useCreditIncomeAnalytics = (
 
   useEffect(() => {
     fetchCreditIncomeAnalytics();
-  }, [userId, selectedMonth, selectedYear]);
+  }, [fetchCreditIncomeAnalytics]);
 
   return {
     data,

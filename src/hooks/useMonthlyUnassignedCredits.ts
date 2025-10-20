@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,8 +25,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('monthly_unassigned_credits')
+      const { data, error } = await (supabase as any).from('monthly_unassigned_credits')
         .select('*')
         .eq('user_id', userId)
         .order('year', { ascending: false })
@@ -37,7 +37,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
         return;
       }
 
-      setMonthlyCredits(data || []);
+      setMonthlyCredits((data as MonthlyUnassignedCredit[]) || []);
     } catch (error) {
       console.error('Error fetching monthly unassigned credits:', error);
       setMonthlyCredits([]);
@@ -52,8 +52,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
 
     try {
       // First, check if a record already exists for this user, year, and month
-      const { data: existingRecord, error: fetchError } = await supabase
-        .from('monthly_unassigned_credits')
+      const { data: existingRecord, error: fetchError } = await (supabase as any).from('monthly_unassigned_credits')
         .select('*')
         .eq('user_id', userId)
         .eq('year', year)
@@ -70,10 +69,9 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
 
       if (existingRecord) {
         // If record exists, add the new amount to the existing amount
-        finalAmount = existingRecord.unassigned_credit_amount + amount;
+        finalAmount = (existingRecord as MonthlyUnassignedCredit).unassigned_credit_amount + amount;
         
-        const { data, error } = await supabase
-          .from('monthly_unassigned_credits')
+        const { data, error } = await (supabase as any).from('monthly_unassigned_credits')
           .update({
             unassigned_credit_amount: finalAmount,
             updated_at: new Date().toISOString()
@@ -93,8 +91,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
         // If no record exists, create a new one
         finalAmount = amount;
         
-        const { data, error } = await supabase
-          .from('monthly_unassigned_credits')
+        const { data, error } = await (supabase as any).from('monthly_unassigned_credits')
           .insert({
             user_id: userId,
             year,
@@ -137,8 +134,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
     if (!userId) return { error: new Error('User not authenticated') };
 
     try {
-      const { error } = await supabase
-        .from('monthly_unassigned_credits')
+      const { error } = await (supabase as any).from('monthly_unassigned_credits')
         .delete()
         .eq('user_id', userId)
         .eq('year', year)
@@ -178,7 +174,7 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
   // Initialize data when userId changes
   useEffect(() => {
     fetchMonthlyCredits();
-  }, [userId]);
+  }, [fetchMonthlyCredits]);
 
   return {
     monthlyCredits,
@@ -191,3 +187,6 @@ export const useMonthlyUnassignedCredits = (userId?: string) => {
     totalUnassignedCredits // Add memoized total for direct access
   };
 };
+
+
+

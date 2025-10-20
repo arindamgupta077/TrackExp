@@ -14,6 +14,8 @@ export interface FinancialInsights {
   recommendations: string[];
 }
 
+type CategoryBreakdown = FinancialInsights['topCategories'][number];
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -131,7 +133,7 @@ export class FinancialAnalysisService {
     };
   }
 
-  private static generateSpendingPatterns(expenses: Expense[], topCategories: any[], currentMonthTotal: number, previousMonthTotal: number): string[] {
+  private static generateSpendingPatterns(expenses: Expense[], topCategories: CategoryBreakdown[], currentMonthTotal: number, previousMonthTotal: number): string[] {
     const patterns: string[] = [];
 
     if (topCategories.length > 0) {
@@ -165,7 +167,13 @@ export class FinancialAnalysisService {
     return patterns;
   }
 
-  private static generateRecommendations(expenses: Expense[], topCategories: any[], monthlyTrend: string, currentMonthTotal: number, previousMonthTotal: number): string[] {
+  private static generateRecommendations(
+    expenses: Expense[],
+    topCategories: CategoryBreakdown[],
+    monthlyTrend: 'increasing' | 'decreasing' | 'stable',
+    currentMonthTotal: number,
+    previousMonthTotal: number
+  ): string[] {
     const recommendations: string[] = [];
 
     if (monthlyTrend === 'increasing') {

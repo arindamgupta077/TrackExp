@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import heroImage from '@/assets/hero-bg.jpg';
 import { useTheme } from '@/contexts/ThemeContext';
+import { callSupabaseRpc } from '@/lib/supabaseRpc';
 
 interface UserProfile {
   name: string;
@@ -21,6 +22,14 @@ interface UserProfile {
   avatar_url?: string;
   initial_bank_balance?: number;
   has_set_initial_balance?: boolean;
+}
+
+interface ProfileData {
+  name: string;
+  phone: string | null;
+  avatar_url: string | null;
+  initial_bank_balance?: number | null;
+  has_set_initial_balance?: boolean | null;
 }
 
 const Profile = () => {
@@ -57,65 +66,53 @@ const Profile = () => {
   const metadataName = typeof userMetadata?.name === 'string' ? userMetadata.name : undefined;
   const displayName = profile?.name || metadataFullName || metadataName || user?.email || 'there';
 
-  useEffect(() => {
-    fetchProfile();
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!user) {
       console.log('No user found, skipping profile fetch');
+      setLoading(false);
       return;
     }
-    
+
     console.log('Fetching profile for user:', user.id);
-    
+
     try {
-      // First try with all columns, if that fails, try with basic columns only
-      const initialResult = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('name, phone, avatar_url, initial_bank_balance, has_set_initial_balance' as any)
+        .select('*')
         .eq('user_id', user.id)
         .single();
-
-      let { data, error } = initialResult as { data: any; error: any };
-
-      // If the query fails due to missing columns, try with basic columns only
-      if (error && typeof error.message === 'string' && error.message.includes('column') && error.message.includes('does not exist')) {
-        console.log('New columns not found, fetching basic profile data only');
-        const basicResult = await supabase
-          .from('profiles')
-          .select('name, phone, avatar_url' as any)
-          .eq('user_id', user.id)
-          .single();
-        
-        data = basicResult.data;
-        error = basicResult.error;
-        
-        // Add default values for missing columns
-        if (data) {
-          data = {
-            ...data,
-            initial_bank_balance: 0,
-            has_set_initial_balance: true,
-          };
-        }
-      }
-
-      console.log('Profile fetch result:', { data, error });
 
       if (error) {
         console.error('Profile fetch error:', error);
         throw error;
       }
-      
-      setProfile(data ?? null);
+
+      if (!data) {
+        setProfile(null);
+        return;
+      }
+
+      const profileData = data as ProfileData;
+
+      setProfile({
+        name: profileData.name,
+        phone: profileData.phone ?? undefined,
+        avatar_url: profileData.avatar_url ?? undefined,
+        initial_bank_balance: profileData.initial_bank_balance ?? undefined,
+        has_set_initial_balance: profileData.has_set_initial_balance ?? undefined
+      });
       console.log('Profile set successfully:', data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const uploadAvatar = async (file: File) => {
     if (!user) {
@@ -280,7 +277,7 @@ const Profile = () => {
     if (!user) return;
 
     try {
-      const updateData: any = { name, phone };
+      const updateData: Record<string, unknown> = { name, phone };
       if (initialBankBalance !== undefined) {
         updateData.initial_bank_balance = initialBankBalance;
         updateData.has_set_initial_balance = true;
@@ -307,9 +304,10 @@ const Profile = () => {
       });
     } catch (error) {
       console.error('Error updating profile:', error);
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: message,
         variant: "destructive",
       });
     }
@@ -471,11 +469,12 @@ const Profile = () => {
         title: "Password updated!",
         description: "Your password has been changed successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error changing password:', error);
+      const message = error instanceof Error ? error.message : 'Failed to change password';
       toast({
         title: "Error",
-        description: error.message || "Failed to change password",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -517,7 +516,7 @@ const Profile = () => {
 
       // Delete the user account using the database function
       // This will delete all user data from all tables and the auth user record
-  const { error: deleteError } = await supabase.rpc('delete_user' as never);
+      const { error: deleteError } = await callSupabaseRpc<null>('delete_user');
       
       if (deleteError) {
         throw new Error(`Failed to delete account: ${deleteError.message}`);
@@ -532,11 +531,12 @@ const Profile = () => {
       await signOut();
       navigate('/');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting account:', error);
+      const message = error instanceof Error ? error.message : 'Failed to delete account. Please contact support.';
       toast({
         title: "Error",
-        description: error.message || "Failed to delete account. Please contact support.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -705,25 +705,32 @@ const Profile = () => {
             <Card className="glass-card p-4 sm:p-6 md:p-8 slide-up">
               <div className="space-y-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-lg">
-                      <Settings className="h-6 w-6" />
+                  <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-left">
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-lg sm:h-16 sm:w-16">
+                      <Sun
+                        className={`h-7 w-7 transition-all duration-300 ${isDarkMode ? 'scale-90 opacity-0' : 'scale-100 opacity-100'}`}
+                        aria-hidden="true"
+                      />
+                      <Moon
+                        className={`absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${isDarkMode ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}`}
+                        aria-hidden="true"
+                      />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-2xl sm:max-w-none">
                       <h3 className="text-lg sm:text-xl font-heading font-semibold text-foreground">Appearance</h3>
-                      <p className="text-sm text-muted-foreground max-w-xl">
+                      <p className="text-sm text-muted-foreground">
                         Personalize TrackExp to match your visual preference. Theme changes apply instantly and persist on this device.
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-2 self-start rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-muted)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="inline-flex items-center gap-2 self-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-muted)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:self-start">
                     {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                     {isDarkMode ? 'Dark mode active' : 'Light mode active'}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-6 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-center sm:text-left">
                     <div className="flex items-center gap-2">
                       <Settings className="h-5 w-5 text-primary" />
                       <h4 className="text-base font-semibold text-foreground">Theme</h4>
@@ -733,7 +740,7 @@ const Profile = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Moon className={`h-4 w-4 ${isDarkMode ? 'text-primary' : ''}`} />
                       <span>Dark</span>

@@ -4,12 +4,13 @@ export const testGeminiAPIKey = async (): Promise<{ success: boolean; message: s
   try {
     const result = await GeminiChatService.testConnection();
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API key test failed:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return {
       success: false,
       message: 'Failed to test API connection',
-      error: error.message || 'Unknown error'
+      error: message
     };
   }
 };

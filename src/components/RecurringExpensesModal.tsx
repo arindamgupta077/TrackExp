@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -76,12 +77,12 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Fetch recurring expenses
-  const fetchRecurringExpenses = async () => {
+  const fetchRecurringExpenses = useCallback(async () => {
     if (!user?.id) return;
     
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_user_recurring_expenses', {
+      const { data, error } = await (supabase as any).rpc('get_user_recurring_expenses', {
         target_user_id: user.id
       });
       
@@ -97,7 +98,7 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, toast]);
 
   // Create new recurring expense
   const createRecurringExpense = async () => {
@@ -124,7 +125,7 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
     
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('recurring_expenses')
         .insert({
           user_id: user.id,
@@ -184,7 +185,7 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
     
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('update_recurring_expense', {
+      const { error } = await (supabase as any).rpc('update_recurring_expense', {
         expense_id: editingExpense.id,
         new_category: formData.category,
         new_amount: parseFloat(formData.amount),
@@ -219,7 +220,7 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
   const deleteRecurringExpense = async (id: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('delete_recurring_expense', {
+      const { error } = await (supabase as any).rpc('delete_recurring_expense', {
         expense_id: id
       });
       
@@ -276,11 +277,11 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
   const handleManualTrigger = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('manual_trigger_recurring_expenses');
+      const { data, error } = await (supabase as any).rpc('manual_trigger_recurring_expenses');
       
       if (error) throw error;
       
-      const result = data && data.length > 0 ? data[0] : { processed_count: 0, message: 'No data returned' };
+      const result = (data as any) && (data as any).length > 0 ? (data as any)[0] : { processed_count: 0, message: 'No data returned' };
       
       toast({
         title: "Success",
@@ -311,7 +312,7 @@ export const RecurringExpensesModal = ({ isOpen, onClose }: RecurringExpensesMod
     if (isOpen) {
       fetchRecurringExpenses();
     }
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, fetchRecurringExpenses]);
 
   if (!isOpen) return null;
 

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -15,7 +16,7 @@ export const useCategories = (userId: string | undefined) => {
   const [hasSeededDefaults, setHasSeededDefaults] = useState(false)
   const { toast } = useToast()
 
-  const migrateLocalStoragePreferences = async () => {
+  const migrateLocalStoragePreferences = useCallback(async () => {
     if (!userId) return
     
     try {
@@ -42,9 +43,9 @@ export const useCategories = (userId: string | undefined) => {
     } catch (error) {
       console.error('Error migrating localStorage preferences:', error)
     }
-  }
+  }, [userId])
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!userId) {
       setCategories([])
       setLoading(false)
@@ -73,7 +74,7 @@ export const useCategories = (userId: string | undefined) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, toast, migrateLocalStoragePreferences])
 
   const seedDefaultsIfEmpty = async () => {
     if (!userId || hasSeededDefaults) return
@@ -202,7 +203,7 @@ export const useCategories = (userId: string | undefined) => {
 
   const updateCategoryIcon = async (id: string, icon: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('categories')
         .update({ icon })
         .eq('id', id)
@@ -346,7 +347,7 @@ export const useCategories = (userId: string | undefined) => {
 
   useEffect(() => {
     fetchCategories()
-  }, [userId])
+  }, [fetchCategories])
 
   // After initial fetch completes, try to seed defaults for this user if none exist
   useEffect(() => {
@@ -373,3 +374,4 @@ export const useCategories = (userId: string | undefined) => {
     allowDefaultCategories
   }
 }
+

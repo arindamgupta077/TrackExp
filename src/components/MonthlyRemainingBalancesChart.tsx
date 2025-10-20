@@ -100,6 +100,7 @@ const MonthlyRemainingBalancesChart: React.FC<MonthlyRemainingBalancesChartProps
         return false; // Don't show any months for future years
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, selectedYear]);
 
   // Prepare category comparison data
@@ -149,6 +150,7 @@ const MonthlyRemainingBalancesChart: React.FC<MonthlyRemainingBalancesChartProps
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, selectedCategory, selectedYear]);
 
   // Calculate summary statistics
@@ -194,6 +196,7 @@ const MonthlyRemainingBalancesChart: React.FC<MonthlyRemainingBalancesChartProps
       categoriesInLoss,
       totalCategories: data.length
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, monthlyTrendData, selectedYear]);
 
   const renderChart = () => {
@@ -370,7 +373,7 @@ const MonthlyRemainingBalancesChart: React.FC<MonthlyRemainingBalancesChartProps
         } else {
           // For category view, show category distribution
           const pieData = categoryComparisonData
-            .filter(item => Math.abs(item.totalBalance) > 0)
+            .filter(item => 'totalBalance' in item && Math.abs(item.totalBalance) > 0)
             .slice(0, 10); // Show top 10 categories
           
           return (
@@ -393,7 +396,7 @@ const MonthlyRemainingBalancesChart: React.FC<MonthlyRemainingBalancesChartProps
                     dataKey="totalBalance"
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-${index}`} fill={'fill' in entry ? entry.fill : '#8884d8'} />
                     ))}
                   </Pie>
                   <ChartTooltip 

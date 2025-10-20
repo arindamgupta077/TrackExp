@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { callSupabaseRpc } from '@/lib/supabaseRpc';
 
 export interface SalaryMonth {
   year: number;
@@ -14,21 +14,23 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
   const { toast } = useToast();
 
   // Fetch salary months for the user
-  const fetchSalaryMonths = async () => {
+  const fetchSalaryMonths = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await (supabase as any)
-        .rpc('get_salary_months_for_user', {
+      const { data, error } = await callSupabaseRpc<SalaryMonth[]>(
+        'get_salary_months_for_user',
+        {
           target_user_id: userId
-        });
+        }
+      );
 
       if (error) throw error;
 
-      setSalaryMonths(data || []);
+      setSalaryMonths(data ?? []);
     } catch (error) {
       console.error('Error fetching salary months:', error);
       toast({
@@ -39,7 +41,7 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, toast]);
 
   // Mark a month as having salary added
   const markSalaryMonth = async (year: number, month: number) => {
@@ -48,12 +50,14 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
     }
 
     try {
-      const { error } = await (supabase as any)
-        .rpc('mark_salary_month_added', {
+      const { error } = await callSupabaseRpc<null>(
+        'mark_salary_month_added',
+        {
           target_user_id: userId,
           target_year: year,
           target_month: month
-        });
+        }
+      );
 
       if (error) throw error;
 
@@ -80,12 +84,14 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
     }
 
     try {
-      const { error } = await (supabase as any)
-        .rpc('unmark_salary_month_removed', {
+      const { error } = await callSupabaseRpc<null>(
+        'unmark_salary_month_removed',
+        {
           target_user_id: userId,
           target_year: year,
           target_month: month
-        });
+        }
+      );
 
       if (error) throw error;
 
@@ -110,16 +116,18 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
     if (!userId) return false;
 
     try {
-      const { data, error } = await (supabase as any)
-        .rpc('has_salary_for_month', {
+      const { data, error } = await callSupabaseRpc<boolean>(
+        'has_salary_for_month',
+        {
           target_user_id: userId,
           target_year: year,
           target_month: month
-        });
+        }
+      );
 
       if (error) throw error;
 
-      return data || false;
+      return Boolean(data);
     } catch (error) {
       console.error('Error checking salary month:', error);
       return false;
@@ -136,7 +144,7 @@ export const useSalaryMonthsTracking = (userId: string | undefined) => {
   // Initialize salary months when component mounts
   useEffect(() => {
     fetchSalaryMonths();
-  }, [userId]);
+  }, [fetchSalaryMonths]);
 
   return {
     salaryMonths,

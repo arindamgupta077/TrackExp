@@ -226,7 +226,7 @@ const AIAgent: React.FC = () => {
     }
   };
 
-  const scrollToLastAssistantMessage = () => {
+  const scrollToLastAssistantMessage = useCallback(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
@@ -253,7 +253,7 @@ const AIAgent: React.FC = () => {
         }
       }
     }
-  };
+  }, [messages]);
 
   const handleManualScrollToBottom = () => {
     scrollToBottom();
@@ -388,7 +388,7 @@ const AIAgent: React.FC = () => {
       // Update message count
       previousMessageCount.current = messages.length;
     }
-  }, [messages, showWelcome]);
+  }, [messages, showWelcome, scrollToLastAssistantMessage]);
 
   const initializeChat = useCallback(async () => {
     setIsLoading(true);
