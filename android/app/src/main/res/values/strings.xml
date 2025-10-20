@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TrackExp</string>
+    <string name="title_activity_main">TrackExp</string>
+    <string name="package_name">com.trackexp.app</string>
+    <string name="custom_url_scheme">com.trackexp.app</string>
+</resources>

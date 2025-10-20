@@ -81,6 +81,18 @@ This project is built with:
 - Theme styles are driven by CSS variables defined in `src/theme.css`; global overrides live in `src/index.css`.
 - Apply or persist theme changes via the helpers in `src/utils/themeManager.ts` and the context provided in `src/contexts/ThemeContext.tsx`.
 
+## Android APK build (Capacitor)
+
+Follow these steps to generate an installable Android package from the web build:
+
+1. **Install dependencies**: `npm install` (or `bun install`) to pull in the new Capacitor packages.
+2. **Create the Android project (first time only)**: `npm run android:setup`. This scaffolds `android/` using Capacitor.
+3. **Build the web assets and sync to Android**: `npm run build:android`. This runs the Vite production build and copies the output to the Android project via Capacitor.
+4. **Open Android Studio**: `npm run android:open`, then let Gradle finish syncing. Ensure `local.properties` points to a valid Android SDK (`sdk.dir=...`).
+5. **Produce an APK**: In Android Studio choose `Build > Build Bundle(s) / APK(s) > Build APK(s)`. The signed/unsigned APK will be available under `android/app/build/outputs/apk/`.
+
+For release builds, configure signing inside Android Studio (`Build > Generate Signed Bundle / APK...`) and adjust the version information in `android/app/src/main/AndroidManifest.xml` as needed.
+
 
 Yes, you can!
 
